@@ -1,0 +1,4 @@
+.venv
+*.env
+testGroq.py
+testflask.py
