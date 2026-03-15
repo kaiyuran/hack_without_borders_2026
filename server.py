@@ -9,7 +9,7 @@ import re
 app = Flask(__name__)
 CORS(app)
 
-level_data = read_csv('testData.csv')
+level_data = read_csv('testData.csv') #make sure this is /home/KAI10037/mysite on pythonanywhere
 leaderboard_file = Path(__file__).with_name("leaderboard.txt")
 sample_leaderboard = [
     ("Ava", 980),

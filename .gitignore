@@ -3,3 +3,5 @@
 testGroq.py
 testflask.py
 __pycache__/
+zip
+*.zip
