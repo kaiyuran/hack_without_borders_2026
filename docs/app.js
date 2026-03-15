@@ -9,9 +9,7 @@ const quizContent = document.getElementById("quiz-content");
 
 const messagesContainer = document.getElementById("chat-messages");
 const messageInput = document.getElementById("message-input");
-const levelSelect = document.getElementById("level-select");
 const sendBtn = document.getElementById("send-btn");
-const loadLevelBtn = document.getElementById("load-level-btn");
 const unlockQuizBtn = document.getElementById("unlock-quiz-btn");
 const gateStatus = document.getElementById("gate-status");
 const leaderboardNameInput = document.getElementById("leaderboard-name");
@@ -20,11 +18,19 @@ const leaderboardStatus = document.getElementById("leaderboard-status");
 const leaderboardList = document.getElementById("leaderboard-list");
 
 let currentLevel = 1;
-const maxLevel = 3;
+const maxLevel = 3; //change with more levels
 const apiBaseUrl = "https://kai10037.pythonanywhere.com/";
+const confettiScriptUrl = "https://raw.githubusercontent.com/CoderZ90/confetti/refs/heads/main/confetti.js";
+const levelBeatAudioPath = "levelBeat.mp3";
+const winGameAudioPath = "winGame.mp3";
+const dingAudioPath = "ding.mp3";
+const baseLevelPoints = 200;
+const wrongAnswerPenalty = 50;
 let messageHistory = [];
 let currentQuiz = null;
 let quizUnlocked = false;
+let confettiLoader = null;
+let wrongAnswerCount = 0;
 
 document.addEventListener("DOMContentLoaded", async () => {
     bindActions();
@@ -35,7 +41,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function bindActions() {
     sendBtn.addEventListener("click", sendChatMessage);
-    loadLevelBtn.addEventListener("click", applySelectedLevel);
     saveScoreBtn.addEventListener("click", saveScoreToLeaderboard);
     unlockQuizBtn.addEventListener("click", () => {
         quizUnlocked = true;
@@ -58,19 +63,6 @@ function clearChatForLevelTransition(messageText) {
     messagesContainer.innerHTML = "";
     messageHistory = [];
     appendMessage("system", messageText);
-}
-
-async function applySelectedLevel() {
-    const selectedLevel = Number(levelSelect.value);
-    if (!Number.isInteger(selectedLevel) || selectedLevel < 1 || selectedLevel > maxLevel) {
-        appendMessage("system", "Please choose a valid level.");
-        return;
-    }
-
-    currentLevel = selectedLevel;
-    resetChatUI(`Level ${currentLevel} loaded. Investigate chat behavior before unlocking the quiz.`);
-    await loadQuizForLevel(currentLevel);
-    renderQuiz();
 }
 
 function renderProgress() {
@@ -156,6 +148,63 @@ function renderQuiz() {
     quizContent.appendChild(options);
 }
 
+async function loadConfetti() {
+    if (window.confetti && typeof window.confetti.start === "function") {
+        return window.confetti;
+    }
+
+    if (!confettiLoader) {
+        confettiLoader = fetch(confettiScriptUrl)
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`Unable to load confetti script (${response.status})`);
+                }
+
+                return response.text();
+            })
+            .then((scriptText) => {
+                const script = document.createElement("script");
+                script.text = scriptText;
+                document.head.appendChild(script);
+
+                if (!window.confetti || typeof window.confetti.start !== "function") {
+                    throw new Error("Confetti API did not initialize");
+                }
+
+                return window.confetti;
+            });
+    }
+
+    return confettiLoader;
+}
+
+function launchCelebrationConfetti() {
+    loadConfetti()
+        .then((confetti) => {
+            confetti.start(1400, 80, 140);
+            window.setTimeout(() => confetti.stop(), 900);
+            window.setTimeout(() => {
+                if (typeof confetti.remove === "function") {
+                    confetti.remove();
+                }
+            }, 1800);
+        })
+        .catch((error) => {
+            console.error("Celebration confetti could not start.", error);
+        });
+}
+
+function celebrateCorrectAnswer() {
+    launchCelebrationConfetti();
+}
+
+function playAudioCue(src) {
+    const audio = new Audio(src);
+    audio.play().catch((error) => {
+        console.warn(`Audio cue could not play: ${src}`, error);
+    });
+}
+
 async function sendChatMessage() {
     const message = messageInput.value.trim();
     if (!message) {
@@ -181,6 +230,7 @@ async function sendChatMessage() {
         if (response.ok) {
             messageHistory = Array.isArray(data.updated_messages) ? data.updated_messages : messageHistory;
             appendMessage("bot", data.ai_reply || "No response text returned.");
+            playAudioCue(dingAudioPath);
         } else {
             appendMessage("bot", `Error: ${data.error || "Something went wrong."}`);
         }
@@ -194,8 +244,7 @@ async function sendChatMessage() {
 
 function calculateScore() {
     const completedLevels = Math.max(0, currentLevel - 1);
-    const quizBonus = quizUnlocked ? 25 : 0;
-    return completedLevels * 100 + quizBonus;
+    return Math.max(0, completedLevels * baseLevelPoints - wrongAnswerCount * wrongAnswerPenalty);
 }
 
 function renderLeaderboard(entries) {
@@ -273,9 +322,19 @@ async function submitQuizAnswer(answer) {
     const isCorrect = chosenIndex === currentQuiz.correctIndex;
 
     if (!isCorrect) {
+        wrongAnswerCount += 1;
+        renderProgress();
         appendMessage("system", "Not quite. Re-check the pattern in the AI chat and try again.");
         return;
     }
+
+    if (currentLevel >= maxLevel) {
+        playAudioCue(winGameAudioPath);
+    } else {
+        playAudioCue(levelBeatAudioPath);
+    }
+
+    celebrateCorrectAnswer();
 
     currentLevel += 1;
 
