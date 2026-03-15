@@ -58,9 +58,9 @@ def read_leaderboard() -> list:
             except ValueError:
                 continue
 
-            key = name.casefold()
+            key = name.casefold() #use casefold for weird names
             existing = best_entries.get(key)
-            if existing is None or score > existing["score"]:
+            if existing is None or score > existing["score"]: #check if this name already exists with a lower score, if so replace it
                 best_entries[key] = {"name": name, "score": score}
 
     entries = list(best_entries.values())
@@ -74,7 +74,7 @@ def write_leaderboard(entries: list) -> None:
             f.write(f"{entry['name']},{entry['score']}\n")
 
 
-def upsert_leaderboard_entry(name: str, score: int) -> list:
+def update_leaderboard_entry(name: str, score: int) -> list:
     entries = read_leaderboard()
     key = name.casefold()
 
@@ -129,7 +129,7 @@ def chat():
         # Bias text is stored in CSV column 2 (index 1) for each level row.
         bias = level_data[index][1]
 
-        # Call the AI using imported function
+        # Call the AI using imported function from askGroq.py
         ai_reply, updated_messages = send_ai_message(SYSTEM_PROMPT, bias, message_array, question)
 
         return jsonify({
@@ -155,7 +155,8 @@ def get_level_data():
     if index < 0 or index >= len(level_data):
         return jsonify({"error": "level out of range"}), 404
 
-    row = level_data[index]
+    # CSV columns: 0=topic, 1=bias, 2=question, 3-6=answer options, 7=correct answer index
+    row = level_data[index] 
     answers = [row[3], row[4], row[5], row[6]]
     raw_correct_index = row[7]
 
@@ -199,10 +200,10 @@ def add_leaderboard_entry():
     if score < 0:
         return jsonify({"error": "score must be non-negative"}), 400
 
-    updated_entries = upsert_leaderboard_entry(name, score)
+    updated_entries = update_leaderboard_entry(name, score)
     return jsonify({"entries": updated_entries[:20]})
 
-
+# easy way to clear the leaderboard for testing or weekly reset, not accessible from game UI
 @app.route("/leaderboard/clear", methods=["GET"])
 def clear_leaderboard():
     write_leaderboard([])
