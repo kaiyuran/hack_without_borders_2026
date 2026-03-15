@@ -3,11 +3,13 @@ import os
 from groq import Groq
 from dotenv import load_dotenv
 
-# Load API key from keys.env
-load_dotenv('keys.env')
-api_key = os.getenv('GROQ_API_KEY')
+# Only load local .env if it exists
+if os.path.exists(".env"):
+    load_dotenv()
+
+api_key = os.getenv("GROQ_API_KEY")
 if not api_key:
-    raise ValueError("GROQ_API_KEY not found in keys.env")
+    raise ValueError("GROQ_API_KEY is not set")
 
 # Initialize Groq client
 client = Groq(api_key=api_key)
