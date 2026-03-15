@@ -75,6 +75,28 @@
                 </div>
             </article>
         </section>
+
+        <section class="leaderboard-card">
+            <div class="card-head">
+                <h2>Leaderboard</h2>
+                <span class="step">Top Scores</span>
+            </div>
+
+            <div class="leaderboard-tools">
+                <label for="leaderboard-name">Add Your First Name</label>
+                <div class="row">
+                    <input id="leaderboard-name" type="text" maxlength="20" placeholder="Example: Ava">
+                    <button class="btn quiz" id="save-score-btn">Save Score</button>
+                </div>
+                <p id="leaderboard-status" class="status">Score is based on level progress.</p>
+            </div>
+
+            <div class="leaderboard-list-wrap">
+                <ol id="leaderboard-list" class="leaderboard-list">
+                    <li class="status">Loading leaderboard...</li>
+                </ol>
+            </div>
+        </section>
     </main>
 
     <script src="app.js"></script>

@@ -131,12 +131,14 @@ body {
 
 input,
 textarea,
+select,
 button {
     font: inherit;
 }
 
 input,
-textarea {
+textarea,
+select {
     border: 1px solid rgba(31, 29, 24, 0.2);
     border-radius: var(--radius-sm);
     padding: 10px 12px;
@@ -145,7 +147,8 @@ textarea {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
     border-color: var(--teal);
     box-shadow: 0 0 0 3px rgba(13, 118, 110, 0.15);
 }
@@ -185,6 +188,8 @@ textarea:focus {
 .messages {
     flex: 1;
     overflow-y: auto;
+    min-height: 240px;
+    max-height: 340px;
     padding: 14px;
     display: flex;
     flex-direction: column;
@@ -326,6 +331,62 @@ textarea:focus {
 .error {
     color: var(--danger);
     font-weight: 700;
+}
+
+.leaderboard-card {
+    background: var(--card);
+    border: 1px solid rgba(255, 255, 255, 0.48);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(8px);
+    overflow: hidden;
+}
+
+.leaderboard-tools {
+    border-bottom: 1px solid var(--line);
+    padding: 12px 14px;
+    background: #fffef9;
+    display: grid;
+    gap: 8px;
+}
+
+.leaderboard-tools label {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-weight: 700;
+}
+
+.leaderboard-list-wrap {
+    padding: 14px;
+    background: linear-gradient(180deg, #fffefc, #fff9ee);
+}
+
+.leaderboard-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 8px;
+}
+
+.leaderboard-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 9px 11px;
+    background: #fff;
+}
+
+.leader-name {
+    font-weight: 700;
+    color: #2d2a23;
+}
+
+.leader-score {
+    font-weight: 700;
+    color: var(--teal-dark);
 }
 
 @media (max-width: 1000px) {

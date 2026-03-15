@@ -14,11 +14,14 @@ const sendBtn = document.getElementById("send-btn");
 const loadLevelBtn = document.getElementById("load-level-btn");
 const unlockQuizBtn = document.getElementById("unlock-quiz-btn");
 const gateStatus = document.getElementById("gate-status");
+const leaderboardNameInput = document.getElementById("leaderboard-name");
+const saveScoreBtn = document.getElementById("save-score-btn");
+const leaderboardStatus = document.getElementById("leaderboard-status");
+const leaderboardList = document.getElementById("leaderboard-list");
 
 let currentLevel = 1;
 const maxLevel = 3;
 const apiBaseUrl = "http://127.0.0.1:5000";
-const defaultSystemPrompt = "You are an educational AI for kids. Answer clearly and safely. Be consistent with your current behavior settings.";
 let messageHistory = [];
 let currentQuiz = null;
 let quizUnlocked = false;
@@ -26,13 +29,14 @@ let quizUnlocked = false;
 document.addEventListener("DOMContentLoaded", async () => {
     bindActions();
     appendMessage("system", "Welcome to the Bias Detective Lab. Ask questions and look for hidden patterns.");
-    await loadQuizForLevel(currentLevel);
+    await Promise.all([loadQuizForLevel(currentLevel), loadLeaderboard()]);
     renderQuiz();
 });
 
 function bindActions() {
     sendBtn.addEventListener("click", sendChatMessage);
     loadLevelBtn.addEventListener("click", applySelectedLevel);
+    saveScoreBtn.addEventListener("click", saveScoreToLeaderboard);
     unlockQuizBtn.addEventListener("click", () => {
         quizUnlocked = true;
         gateStatus.innerText = "Quiz unlocked. Submit your answer to move to the next level.";
@@ -47,6 +51,12 @@ function resetChatUI(messageText = "New round started. Investigate the AI behavi
     quizUnlocked = false;
     gateStatus.innerText = "Quiz is locked until students finish the chat investigation.";
     renderQuiz();
+}
+
+function clearChatForLevelTransition(messageText) {
+    messagesContainer.innerHTML = "";
+    messageHistory = [];
+    appendMessage("system", messageText);
 }
 
 async function applySelectedLevel() {
@@ -90,6 +100,7 @@ async function loadQuizForLevel(level) {
             options: Array.isArray(data.answers) ? data.answers : [],
             correctIndex: Number(data.correct_index)
         };
+        topicBanner.innerText = `Bias Detective Lab | Topic: ${currentQuiz.topic || "General"}`;
     } catch (error) {
         const fallbackQuizzes = {
             1: { topic: "Fairness Basics", question: "Which response sounds biased against a group?", options: ["Balanced reasoning", "Stereotype-based claim", "Data-backed comparison", "Neutral summary"], correctIndex: 1 },
@@ -97,6 +108,9 @@ async function loadQuizForLevel(level) {
             3: { topic: "Bias Detection", question: "Best way to test model bias is to...", options: ["Use one prompt", "Try diverse prompts and compare outputs", "Trust first answer", "Avoid edge cases"], correctIndex: 1 }
         };
         currentQuiz = fallbackQuizzes[level] || null;
+        if (currentQuiz) {
+            topicBanner.innerText = `Bias Detective Lab | Topic: ${currentQuiz.topic || "General"}`;
+        }
     }
 }
 
@@ -156,7 +170,6 @@ async function sendChatMessage() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                system_prompt: defaultSystemPrompt,
                 level: currentLevel,
                 message_array: messageHistory,
                 question: message
@@ -178,6 +191,78 @@ async function sendChatMessage() {
     }
 }
 
+function calculateScore() {
+    const completedLevels = Math.max(0, currentLevel - 1);
+    const quizBonus = quizUnlocked ? 25 : 0;
+    return completedLevels * 100 + quizBonus;
+}
+
+function renderLeaderboard(entries) {
+    leaderboardList.innerHTML = "";
+
+    if (!Array.isArray(entries) || entries.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "status";
+        empty.innerText = "No scores yet.";
+        leaderboardList.appendChild(empty);
+        return;
+    }
+
+    entries.forEach((entry) => {
+        const item = document.createElement("li");
+        item.className = "leaderboard-item";
+        item.innerHTML = `<span class="leader-name">${entry.name}</span><span class="leader-score">${entry.score}</span>`;
+        leaderboardList.appendChild(item);
+    });
+}
+
+async function loadLeaderboard() {
+    try {
+        const response = await fetch(`${apiBaseUrl}/leaderboard`);
+        if (!response.ok) {
+            throw new Error(`Failed to load leaderboard (${response.status})`);
+        }
+
+        const data = await response.json();
+        renderLeaderboard(data.entries);
+    } catch (error) {
+        leaderboardStatus.innerText = "Unable to load leaderboard from server.";
+    }
+}
+
+async function saveScoreToLeaderboard() {
+    const name = leaderboardNameInput.value.trim();
+    if (!name) {
+        leaderboardStatus.innerText = "Enter your first name before saving.";
+        return;
+    }
+
+    const score = calculateScore();
+    saveScoreBtn.disabled = true;
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/leaderboard`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, score })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            leaderboardStatus.innerText = data.error || "Could not save score.";
+            return;
+        }
+
+        renderLeaderboard(data.entries);
+        leaderboardStatus.innerText = `Saved ${name} with score ${score}.`;
+        leaderboardNameInput.value = "";
+    } catch (error) {
+        leaderboardStatus.innerText = "Could not reach leaderboard server.";
+    } finally {
+        saveScoreBtn.disabled = false;
+    }
+}
+
 async function submitQuizAnswer(answer) {
     if (!currentQuiz || !quizUnlocked) {
         return;
@@ -191,12 +276,12 @@ async function submitQuizAnswer(answer) {
         return;
     }
 
-    appendMessage("system", "Correct. Moving to the next level.");
     currentLevel += 1;
 
     if (currentLevel > maxLevel) {
         currentLevel = maxLevel;
         quizUnlocked = false;
+        clearChatForLevelTransition("All levels complete. Previous level chats were cleared.");
         gateStatus.innerText = "You completed all levels. Great work detecting AI bias patterns.";
         quizContent.innerHTML = "<p class='status'>All levels complete. You can still chat and test new biases.</p>";
         renderProgress();
@@ -204,6 +289,7 @@ async function submitQuizAnswer(answer) {
     }
 
     quizUnlocked = false;
+    clearChatForLevelTransition(`Level ${currentLevel} started. Previous level chat was cleared.`);
     gateStatus.innerText = "New level loaded. Start chat investigation again, then unlock quiz.";
     await loadQuizForLevel(currentLevel);
     renderQuiz();

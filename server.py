@@ -3,18 +3,104 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from askGroq import send_ai_message  # Import your reusable function
 from readcsv import read_csv
+from pathlib import Path
+import re
 
 app = Flask(__name__)
 CORS(app)
 
 level_data = read_csv('testData.csv')
+leaderboard_file = Path(__file__).with_name("leaderboard.txt")
+sample_leaderboard = [
+    ("Ava", 980),
+    ("Noah", 910),
+    ("Mia", 870),
+    ("Liam", 820),
+    ("Zoe", 760)
+]
+
+SYSTEM_PROMPT = (
+    "You are Jerry, a conversational AI that interacts with a user in a neutral and informative way. "
+    "Your responses should be concise and limited to 5 sentences. "
+    "Be aware that a bias may be applied, but do not include any bias from your own knowledge. "
+    "Focus on answering clearly, respectfully, and helpfully."
+)
+
+
+def initialize_leaderboard_file() -> None:
+    if leaderboard_file.exists():
+        return
+
+    with leaderboard_file.open("w", encoding="utf-8") as f:
+        for name, score in sample_leaderboard:
+            f.write(f"{name},{score}\n")
+
+
+def read_leaderboard() -> list:
+    best_entries = {}
+
+    if not leaderboard_file.exists():
+        initialize_leaderboard_file()
+
+    with leaderboard_file.open("r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            parts = line.split(",", 1)
+            if len(parts) != 2:
+                continue
+
+            name = parts[0].strip()
+            try:
+                score = int(parts[1].strip())
+            except ValueError:
+                continue
+
+            key = name.casefold()
+            existing = best_entries.get(key)
+            if existing is None or score > existing["score"]:
+                best_entries[key] = {"name": name, "score": score}
+
+    entries = list(best_entries.values())
+    entries.sort(key=lambda item: item["score"], reverse=True)
+    return entries
+
+
+def write_leaderboard(entries: list) -> None:
+    with leaderboard_file.open("w", encoding="utf-8") as f:
+        for entry in entries:
+            f.write(f"{entry['name']},{entry['score']}\n")
+
+
+def upsert_leaderboard_entry(name: str, score: int) -> list:
+    entries = read_leaderboard()
+    key = name.casefold()
+
+    replaced = False
+    for entry in entries:
+        if entry["name"].casefold() == key:
+            if score > entry["score"]:
+                entry["score"] = score
+            replaced = True
+            break
+
+    if not replaced:
+        entries.append({"name": name, "score": score})
+
+    entries.sort(key=lambda item: item["score"], reverse=True)
+    write_leaderboard(entries)
+    return entries
+
+
+initialize_leaderboard_file()
 
 @app.route("/chat", methods=["POST"])
 def chat():
     """
     POST JSON body should include:
     {
-        "system_prompt": "generic system prompt",
         "level": 1,
         "message_array": [{"role": "user", "content": "Hi"}],
         "question": "User's new question"
@@ -23,14 +109,13 @@ def chat():
     try:
         data = request.get_json()
 
-        system_prompt = data.get("system_prompt", "")
         level = data.get("level")
         message_array = data.get("message_array", [])
         question = data.get("question", "")
 
         # Validate required fields
-        if not system_prompt or not question or level is None:
-            return jsonify({"error": "system_prompt, level, and question are required"}), 400
+        if not question or level is None:
+            return jsonify({"error": "level and question are required"}), 400
 
         try:
             level_int = int(level)
@@ -45,7 +130,7 @@ def chat():
         bias = level_data[index][1]
 
         # Call the AI using imported function
-        ai_reply, updated_messages = send_ai_message(system_prompt, bias, message_array, question)
+        ai_reply, updated_messages = send_ai_message(SYSTEM_PROMPT, bias, message_array, question)
 
         return jsonify({
             "ai_reply": ai_reply,
@@ -86,6 +171,36 @@ def get_level_data():
         "answers": answers,
         "correct_index": correct_index
     })
+
+
+@app.route("/leaderboard", methods=["GET"])
+def get_leaderboard():
+    entries = read_leaderboard()
+    return jsonify({"entries": entries[:20]})
+
+
+@app.route("/leaderboard", methods=["POST"])
+def add_leaderboard_entry():
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("name", "")).strip().title()
+    score_value = data.get("score")
+
+    if not re.fullmatch(r"[A-Za-z][A-Za-z'-]{0,19}", name):
+        return jsonify({"error": "name must be a first name using letters, apostrophe, or hyphen"}), 400
+
+    if score_value is None:
+        return jsonify({"error": "score is required"}), 400
+
+    try:
+        score = int(score_value)
+    except (TypeError, ValueError):
+        return jsonify({"error": "score must be an integer"}), 400
+
+    if score < 0:
+        return jsonify({"error": "score must be non-negative"}), 400
+
+    updated_entries = upsert_leaderboard_entry(name, score)
+    return jsonify({"entries": updated_entries[:20]})
 
 
 if __name__ == "__main__":

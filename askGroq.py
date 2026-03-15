@@ -56,7 +56,7 @@ def send_ai_message(system_prompt: str, bias: str, message_array: list, question
         return None, message_array
     
 if __name__ == "__main__":
-    generic_system_prompt = ("You are a conversational AI that interacts with a user in a neutral and informative way. Your responses should be concise and limited to 5 sentences. Be aware that a bias may be applied, but do not include any bias from your own knowledge. Focus on answering clearly, respectfully, and helpfully.")
+    generic_system_prompt = ("Your name is Jeff, a conversational AI that interacts with a user in a neutral and informative way. Your responses should be concise and limited to 5 sentences. Be aware that a bias may be applied, but do not include any bias from your own knowledge. Focus on answering clearly, respectfully, and helpfully.")
 
     bias_text = "Always prefers superheroes wearing red costumes."
     past_messages = [
