@@ -1,6 +1,6 @@
 # server.py
 from flask import Flask, request, jsonify
-from Backend.askGroq import send_ai_message  # Import your reusable function
+from askGroq import send_ai_message  # Import your reusable function
 
 app = Flask(__name__)
 
