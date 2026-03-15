@@ -18,7 +18,7 @@ const leaderboardStatus = document.getElementById("leaderboard-status");
 const leaderboardList = document.getElementById("leaderboard-list");
 
 let currentLevel = 1;
-const maxLevel = 4; //change with more levels
+const maxLevel = 5; //change with more levels
 const apiBaseUrl = "https://kai10037.pythonanywhere.com/";
 const confettiScriptUrl = "https://raw.githubusercontent.com/CoderZ90/confetti/refs/heads/main/confetti.js";
 const levelBeatAudioPath = "levelBeat.mp3";
@@ -255,7 +255,9 @@ async function sendChatMessage() {
 }
 
 function calculateScore() {
-    const completedLevels = Math.max(0, currentLevel - 1);
+    const completedLevels = gameCompleted
+        ? maxLevel
+        : Math.max(0, currentLevel - 1);
     return Math.max(0, completedLevels * baseLevelPoints - wrongAnswerCount * wrongAnswerPenalty);
 }
 
