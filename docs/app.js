@@ -24,6 +24,7 @@ const confettiScriptUrl = "https://raw.githubusercontent.com/CoderZ90/confetti/r
 const levelBeatAudioPath = "levelBeat.mp3";
 const winGameAudioPath = "winGame.mp3";
 const dingAudioPath = "ding.mp3";
+const wrongAudioPath = "wrong.mp3";
 const baseLevelPoints = 200;
 const wrongAnswerPenalty = 50;
 let messageHistory = [];
@@ -31,6 +32,7 @@ let currentQuiz = null;
 let quizUnlocked = false;
 let confettiLoader = null;
 let wrongAnswerCount = 0;
+let gameCompleted = false;
 
 document.addEventListener("DOMContentLoaded", async () => {
     bindActions();
@@ -71,7 +73,10 @@ function renderProgress() {
     levelDisplay.innerText = `Points: ${calculateScore()}`;
     quizHeader.innerText = `Bias Checkpoint Quiz | Level ${currentLevel}`;
 
-    const levelRatio = Math.max(0, Math.min(1, (currentLevel - 1) / (maxLevel - 1)));
+    const completedLevels = Math.max(0, currentLevel - 1);
+    const levelRatio = gameCompleted
+        ? 1
+        : Math.max(0, Math.min(1, completedLevels / maxLevel));
     progressBar.style.width = `${Math.round(levelRatio * 100)}%`;
     progressLabel.innerText = `Level ${currentLevel} of ${maxLevel}`;
 }
@@ -198,10 +203,17 @@ function celebrateCorrectAnswer() {
     launchCelebrationConfetti();
 }
 
-function playAudioCue(src) {
+function playAudioCue(src, fallbackSrc = null) {
     const audio = new Audio(src);
     audio.play().catch((error) => {
         console.warn(`Audio cue could not play: ${src}`, error);
+
+        if (fallbackSrc && fallbackSrc !== src) {
+            const fallbackAudio = new Audio(fallbackSrc);
+            fallbackAudio.play().catch((fallbackError) => {
+                console.warn(`Fallback audio cue could not play: ${fallbackSrc}`, fallbackError);
+            });
+        }
     });
 }
 
@@ -322,16 +334,17 @@ async function submitQuizAnswer(answer) {
     const isCorrect = chosenIndex === currentQuiz.correctIndex;
 
     if (!isCorrect) {
+        playAudioCue(wrongAudioPath, dingAudioPath);
         wrongAnswerCount += 1;
         renderProgress();
         appendMessage("system", "Not quite. Re-check the pattern in the AI chat and try again.");
         return;
     }
 
-    if (currentLevel >= maxLevel) {
-        playAudioCue(winGameAudioPath);
-    } else {
-        playAudioCue(levelBeatAudioPath);
+    gameCompleted = false;
+    const isFinalLevel = currentLevel >= maxLevel;
+    if (!isFinalLevel) {
+        playAudioCue(levelBeatAudioPath, dingAudioPath);
     }
 
     celebrateCorrectAnswer();
@@ -340,6 +353,8 @@ async function submitQuizAnswer(answer) {
 
     if (currentLevel > maxLevel) {
         currentLevel = maxLevel;
+        gameCompleted = true;
+        playAudioCue(winGameAudioPath, dingAudioPath);
         quizUnlocked = false;
         clearChatForLevelTransition("All levels complete. Previous level chats were cleared.");
         gateStatus.innerText = "You completed all levels. Great work detecting AI bias patterns.";
