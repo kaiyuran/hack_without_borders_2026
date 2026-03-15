@@ -2,3 +2,4 @@
 *.env
 testGroq.py
 testflask.py
+__pycache__/
