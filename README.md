@@ -1,3 +1,4 @@
+
 # VerifAI
 
 VerifAI is an educational game designed for kids to learn about the biases that can be present in the AI LLMs that we use on a daily basis. 
@@ -23,6 +24,10 @@ While in the venv, run
 ```
 python server.py
 ```
+
+## Next Steps
+Our goal is to refine the app and streamline level creation, increase the types of questions, add authentication, and make the leaderboard automatically reset and grant prizes to the winners.
+
 
 Next, edit the docs\app.js apiBaseUrl with the adress of the Flask server
 Then, open up the docs\index.html file in your favourite browser and try the game!
