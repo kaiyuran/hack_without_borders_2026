@@ -21,7 +21,7 @@ const leaderboardList = document.getElementById("leaderboard-list");
 
 let currentLevel = 1;
 const maxLevel = 3;
-const apiBaseUrl = "http://127.0.0.1:5000";
+const apiBaseUrl = "https://kai10037.pythonanywhere.com/";
 let messageHistory = [];
 let currentQuiz = null;
 let quizUnlocked = false;
@@ -40,6 +40,7 @@ function bindActions() {
     unlockQuizBtn.addEventListener("click", () => {
         quizUnlocked = true;
         gateStatus.innerText = "Quiz unlocked. Submit your answer to move to the next level.";
+        renderProgress();
         renderQuiz();
     });
 }
@@ -75,7 +76,7 @@ async function applySelectedLevel() {
 function renderProgress() {
     pointsDisplay.innerText = `Progress: Level ${currentLevel}`;
     goalDisplay.innerText = "Goal: Detect bias, then pass quiz";
-    levelDisplay.innerText = `Level ${currentLevel}`;
+    levelDisplay.innerText = `Points: ${calculateScore()}`;
     quizHeader.innerText = `Bias Checkpoint Quiz | Level ${currentLevel}`;
 
     const levelRatio = Math.max(0, Math.min(1, (currentLevel - 1) / (maxLevel - 1)));

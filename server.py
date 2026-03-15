@@ -203,5 +203,11 @@ def add_leaderboard_entry():
     return jsonify({"entries": updated_entries[:20]})
 
 
+@app.route("/leaderboard/clear", methods=["GET"])
+def clear_leaderboard():
+    write_leaderboard([])
+    return jsonify({"message": "leaderboard cleared", "entries": []})
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
