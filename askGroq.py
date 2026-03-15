@@ -4,8 +4,7 @@ from groq import Groq
 from dotenv import load_dotenv
 
 # Only load local .env if it exists
-if os.path.exists(".env"):
-    load_dotenv()
+load_dotenv("keys.env")
 
 api_key = os.getenv("GROQ_API_KEY")
 if not api_key:

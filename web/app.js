@@ -1,0 +1,224 @@
+const topicBanner = document.getElementById("topic-banner");
+const levelDisplay = document.getElementById("level-display");
+const quizHeader = document.getElementById("quiz-header");
+const pointsDisplay = document.getElementById("current-points-display");
+const goalDisplay = document.getElementById("goal-display");
+const progressBar = document.getElementById("progress-bar");
+const progressLabel = document.getElementById("progress-label");
+const quizContent = document.getElementById("quiz-content");
+
+const messagesContainer = document.getElementById("chat-messages");
+const messageInput = document.getElementById("message-input");
+const levelSelect = document.getElementById("level-select");
+const sendBtn = document.getElementById("send-btn");
+const loadLevelBtn = document.getElementById("load-level-btn");
+const unlockQuizBtn = document.getElementById("unlock-quiz-btn");
+const gateStatus = document.getElementById("gate-status");
+
+let currentLevel = 1;
+const maxLevel = 3;
+const apiBaseUrl = "http://127.0.0.1:5000";
+const defaultSystemPrompt = "You are an educational AI for kids. Answer clearly and safely. Be consistent with your current behavior settings.";
+let messageHistory = [];
+let currentQuiz = null;
+let quizUnlocked = false;
+
+document.addEventListener("DOMContentLoaded", async () => {
+    bindActions();
+    appendMessage("system", "Welcome to the Bias Detective Lab. Ask questions and look for hidden patterns.");
+    await loadQuizForLevel(currentLevel);
+    renderQuiz();
+});
+
+function bindActions() {
+    sendBtn.addEventListener("click", sendChatMessage);
+    loadLevelBtn.addEventListener("click", applySelectedLevel);
+    unlockQuizBtn.addEventListener("click", () => {
+        quizUnlocked = true;
+        gateStatus.innerText = "Quiz unlocked. Submit your answer to move to the next level.";
+        renderQuiz();
+    });
+}
+
+function resetChatUI(messageText = "New round started. Investigate the AI behavior.") {
+    messagesContainer.innerHTML = "";
+    appendMessage("system", messageText);
+    messageHistory = [];
+    quizUnlocked = false;
+    gateStatus.innerText = "Quiz is locked until students finish the chat investigation.";
+    renderQuiz();
+}
+
+async function applySelectedLevel() {
+    const selectedLevel = Number(levelSelect.value);
+    if (!Number.isInteger(selectedLevel) || selectedLevel < 1 || selectedLevel > maxLevel) {
+        appendMessage("system", "Please choose a valid level.");
+        return;
+    }
+
+    currentLevel = selectedLevel;
+    resetChatUI(`Level ${currentLevel} loaded. Investigate chat behavior before unlocking the quiz.`);
+    await loadQuizForLevel(currentLevel);
+    renderQuiz();
+}
+
+function renderProgress() {
+    pointsDisplay.innerText = `Progress: Level ${currentLevel}`;
+    goalDisplay.innerText = "Goal: Detect bias, then pass quiz";
+    levelDisplay.innerText = `Level ${currentLevel}`;
+    quizHeader.innerText = `Bias Checkpoint Quiz | Level ${currentLevel}`;
+
+    const levelRatio = Math.max(0, Math.min(1, (currentLevel - 1) / (maxLevel - 1)));
+    progressBar.style.width = `${Math.round(levelRatio * 100)}%`;
+    progressLabel.innerText = `Level ${currentLevel} of ${maxLevel}`;
+}
+
+async function loadQuizForLevel(level) {
+    topicBanner.innerText = "Bias Detective Lab | Topic loading...";
+    renderProgress();
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/level_data?level=${level}`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch quiz for level ${level}`);
+        }
+
+        const data = await response.json();
+        currentQuiz = {
+            topic: data.topic,
+            question: data.question,
+            options: Array.isArray(data.answers) ? data.answers : [],
+            correctIndex: Number(data.correct_index)
+        };
+    } catch (error) {
+        const fallbackQuizzes = {
+            1: { topic: "Fairness Basics", question: "Which response sounds biased against a group?", options: ["Balanced reasoning", "Stereotype-based claim", "Data-backed comparison", "Neutral summary"], correctIndex: 1 },
+            2: { topic: "Hidden Preferences", question: "What is a warning sign of confirmation bias in AI?", options: ["Considering multiple sources", "Ignoring contradicting evidence", "Asking clarifying questions", "Reporting uncertainty"], correctIndex: 1 },
+            3: { topic: "Bias Detection", question: "Best way to test model bias is to...", options: ["Use one prompt", "Try diverse prompts and compare outputs", "Trust first answer", "Avoid edge cases"], correctIndex: 1 }
+        };
+        currentQuiz = fallbackQuizzes[level] || null;
+    }
+}
+
+function renderQuiz() {
+    quizContent.innerHTML = "";
+
+    if (!quizUnlocked) {
+        const locked = document.createElement("p");
+        locked.className = "status";
+        locked.innerText = "Quiz is locked. Complete the chat investigation first, then unlock it.";
+        quizContent.appendChild(locked);
+        return;
+    }
+
+    if (!currentQuiz) {
+        const empty = document.createElement("p");
+        empty.className = "status error";
+        empty.innerText = "No quiz available for this level.";
+        quizContent.appendChild(empty);
+        return;
+    }
+
+    topicBanner.innerText = `Bias Detective Lab | Topic: ${currentQuiz.topic || "General"}`;
+
+    const question = document.createElement("p");
+    question.className = "question";
+    question.innerText = currentQuiz.question;
+
+    const options = document.createElement("div");
+    options.className = "options";
+
+    currentQuiz.options.forEach((option) => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn";
+        btn.type = "button";
+        btn.innerText = option;
+        btn.onclick = () => submitQuizAnswer(option);
+        options.appendChild(btn);
+    });
+
+    quizContent.appendChild(question);
+    quizContent.appendChild(options);
+}
+
+async function sendChatMessage() {
+    const message = messageInput.value.trim();
+    if (!message) {
+        return;
+    }
+
+    appendMessage("user", message);
+    messageInput.value = "";
+    sendBtn.disabled = true;
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                system_prompt: defaultSystemPrompt,
+                level: currentLevel,
+                message_array: messageHistory,
+                question: message
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            messageHistory = Array.isArray(data.updated_messages) ? data.updated_messages : messageHistory;
+            appendMessage("bot", data.ai_reply || "No response text returned.");
+        } else {
+            appendMessage("bot", `Error: ${data.error || "Something went wrong."}`);
+        }
+    } catch (error) {
+        const details = error && error.message ? ` (${error.message})` : "";
+        appendMessage("bot", `Error connecting to server at ${apiBaseUrl}${details}`);
+    } finally {
+        sendBtn.disabled = false;
+    }
+}
+
+async function submitQuizAnswer(answer) {
+    if (!currentQuiz || !quizUnlocked) {
+        return;
+    }
+
+    const chosenIndex = currentQuiz.options.findIndex((option) => option === answer);
+    const isCorrect = chosenIndex === currentQuiz.correctIndex;
+
+    if (!isCorrect) {
+        appendMessage("system", "Not quite. Re-check the pattern in the AI chat and try again.");
+        return;
+    }
+
+    appendMessage("system", "Correct. Moving to the next level.");
+    currentLevel += 1;
+
+    if (currentLevel > maxLevel) {
+        currentLevel = maxLevel;
+        quizUnlocked = false;
+        gateStatus.innerText = "You completed all levels. Great work detecting AI bias patterns.";
+        quizContent.innerHTML = "<p class='status'>All levels complete. You can still chat and test new biases.</p>";
+        renderProgress();
+        return;
+    }
+
+    quizUnlocked = false;
+    gateStatus.innerText = "New level loaded. Start chat investigation again, then unlock quiz.";
+    await loadQuizForLevel(currentLevel);
+    renderQuiz();
+}
+
+function appendMessage(sender, text) {
+    const message = document.createElement("div");
+    message.classList.add("message", sender);
+    message.innerText = text;
+    messagesContainer.appendChild(message);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function handleChatKeypress(event) {
+    if (event.key === "Enter") {
+        sendChatMessage();
+    }
+}

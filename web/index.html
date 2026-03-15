@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bias Detective Lab</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <main class="layout">
+        <header class="banner">
+            <h1 id="topic-banner">Bias Detective Lab | Topic loading...</h1>
+            <span class="pill" id="level-display">Level 1</span>
+        </header>
+
+        <section class="board">
+            <article class="card">
+                <div class="card-head">
+                    <h2>AI Conversation Lab</h2>
+                    <span class="step">Step 1</span>
+                </div>
+
+                <div class="teacher-tools">
+                    <label for="level-select">Choose Level (server bias comes from this level)</label>
+                    <div class="row">
+                        <select id="level-select">
+                            <option value="1">Level 1</option>
+                            <option value="2">Level 2</option>
+                            <option value="3">Level 3</option>
+                        </select>
+                        <button class="btn" id="load-level-btn">Load Level</button>
+                    </div>
+                </div>
+
+                <div class="chat-flow">
+                    Kids chat with the AI and investigate patterns. When they think they found the hidden bias,
+                    click the button below to unlock the quiz checkpoint.
+                </div>
+
+                <div class="quiz-gate">
+                    <button class="btn secondary" id="unlock-quiz-btn">I found the bias, unlock quiz</button>
+                    <div id="gate-status">Quiz is locked until students finish the chat investigation.</div>
+                </div>
+
+                <div class="messages" id="chat-messages"></div>
+
+                <div class="chat-input">
+                    <input id="message-input" type="text" placeholder="Ask the AI a question..."
+                        onkeypress="handleChatKeypress(event)">
+                    <button class="btn" id="send-btn">Send</button>
+                </div>
+            </article>
+
+            <article class="card">
+                <div class="card-head">
+                    <h2 id="quiz-header">Bias Checkpoint Quiz</h2>
+                    <span class="step">Step 2</span>
+                </div>
+
+                <div class="quiz-status">
+                    <div class="quiz-stats">
+                        <span id="current-points-display">Progress: Level 1</span>
+                        <span id="goal-display">Goal: Detect bias, then pass quiz</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="progress-bar" class="progress-bar"></div>
+                    </div>
+                    <div id="progress-label" class="status">Loading level...</div>
+                </div>
+
+                <div class="quiz-content" id="quiz-content">
+                    <p class="status">Loading quiz...</p>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
