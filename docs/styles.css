@@ -7,8 +7,8 @@
     --muted: #696356;
     --line: rgba(31, 29, 24, 0.13);
     --teal: #0d766e;
-    --teal-dark: #095752;
-    --orange: #c16b1f;
+    --teal-dark: #00ffee;
+    --orange: #369e1a;
     --blue: #1f5f8b;
     --danger: #b42318;
     --radius-lg: 18px;
@@ -386,7 +386,7 @@ select:focus {
 
 .leader-score {
     font-weight: 700;
-    color: var(--teal-dark);
+    color: var(--blue);
 }
 
 @media (max-width: 1000px) {

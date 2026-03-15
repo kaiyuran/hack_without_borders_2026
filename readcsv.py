@@ -5,7 +5,7 @@ def read_csv(filepath: str) -> list:
     with open(filepath, newline='', encoding='utf-8-sig') as f:
         reader = csv.reader(f)
         for row in reader:
-            try:
+            try: 
                 row[-1] = int(row[-1])
             except:
                 pass

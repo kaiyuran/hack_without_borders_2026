@@ -18,7 +18,7 @@ const leaderboardStatus = document.getElementById("leaderboard-status");
 const leaderboardList = document.getElementById("leaderboard-list");
 
 let currentLevel = 1;
-const maxLevel = 3; //change with more levels
+const maxLevel = 4; //change with more levels
 const apiBaseUrl = "https://kai10037.pythonanywhere.com/";
 const confettiScriptUrl = "https://raw.githubusercontent.com/CoderZ90/confetti/refs/heads/main/confetti.js";
 const levelBeatAudioPath = "levelBeat.mp3";
@@ -36,7 +36,7 @@ let gameCompleted = false;
 
 document.addEventListener("DOMContentLoaded", async () => {
     bindActions();
-    appendMessage("system", "Welcome to the Bias Detective Lab. Ask questions and look for hidden patterns.");
+    appendMessage("system", "Welcome to the VerifAI Game. Ask questions and look for hidden patterns.");
     await Promise.all([loadQuizForLevel(currentLevel), loadLeaderboard()]);
     renderQuiz();
 });
@@ -82,7 +82,7 @@ function renderProgress() {
 }
 
 async function loadQuizForLevel(level) {
-    topicBanner.innerText = "Bias Detective Lab | Topic loading...";
+    topicBanner.innerText = "VerifAI Game | Topic loading...";
     renderProgress();
 
     try {
@@ -98,7 +98,7 @@ async function loadQuizForLevel(level) {
             options: Array.isArray(data.answers) ? data.answers : [],
             correctIndex: Number(data.correct_index)
         };
-        topicBanner.innerText = `Bias Detective Lab | Topic: ${currentQuiz.topic || "General"}`;
+        topicBanner.innerText = `VerifAI Game | Topic: ${currentQuiz.topic || "General"}`;
     } catch (error) {
         const fallbackQuizzes = {
             1: { topic: "Fairness Basics", question: "Which response sounds biased against a group?", options: ["Balanced reasoning", "Stereotype-based claim", "Data-backed comparison", "Neutral summary"], correctIndex: 1 },
@@ -107,7 +107,7 @@ async function loadQuizForLevel(level) {
         };
         currentQuiz = fallbackQuizzes[level] || null;
         if (currentQuiz) {
-            topicBanner.innerText = `Bias Detective Lab | Topic: ${currentQuiz.topic || "General"}`;
+            topicBanner.innerText = `VerifAI Game | Topic: ${currentQuiz.topic || "General"}`;
         }
     }
 }
@@ -131,7 +131,7 @@ function renderQuiz() {
         return;
     }
 
-    topicBanner.innerText = `Bias Detective Lab | Topic: ${currentQuiz.topic || "General"}`;
+    topicBanner.innerText = `VerifAI Game | Topic: ${currentQuiz.topic || "General"}`;
 
     const question = document.createElement("p");
     question.className = "question";
