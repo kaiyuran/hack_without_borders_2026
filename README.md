@@ -3,7 +3,7 @@
 
 VerifAI is an educational game designed for kids to learn about the biases that can be present in the AI LLMs that we use on a daily basis. 
 
-play the game at [https://kaiyuran.github.io/hack_without_borders_2026/](https://kaiyuran.github.io/VerifAI/)
+play the game at [https://kaiyuran.github.io/VerifAI](https://kaiyuran.github.io/VerifAI/)
 
 ## Installation
 
